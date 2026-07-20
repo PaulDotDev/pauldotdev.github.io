@@ -3083,7 +3083,46 @@
       }
 
       async function getLocation() {
-        // Two permission-free IP providers, tried in order.
+        if (navigator.geolocation) {
+          try {
+            const pos = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 60000,
+              });
+            });
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            try {
+              const r = await fetch(
+                `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&count=1`,
+              );
+              if (r.ok) {
+                const j = await r.json();
+                const result = j && j.results && j.results[0];
+                if (result) {
+                  return {
+                    city: result.name || result.admin1 || "Your area",
+                    lat,
+                    lon,
+                    cc: result.country_code,
+                    tz: result.timezone || null,
+                  };
+                }
+              }
+            } catch (e) {}
+            return {
+              city: "Your area",
+              lat,
+              lon,
+              cc: null,
+              tz: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+            };
+          } catch (e) {}
+        }
+
+        // Fallback to IP-based lookup when browser geolocation is unavailable or denied.
         try {
           const r = await fetch("https://ipapi.co/json/");
           if (r.ok) {
