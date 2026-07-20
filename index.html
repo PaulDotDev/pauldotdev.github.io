@@ -249,6 +249,9 @@
         color: #fff;
         border-color: var(--orange);
       }
+      .nav-links .btn-primary {
+        color: #ffffff;
+      }
       .btn-primary:hover {
         background: var(--orange-deep);
         box-shadow: 0 14px 30px -12px rgba(224, 73, 11, 0.75);
@@ -1547,6 +1550,24 @@
               ></a>
             </div>
           </div>
+          <div class="wx loading" id="wx" aria-live="polite">
+            <div class="wx-shimmer"></div>
+            <div class="wx-top">
+              <div class="wx-live"><span class="d"></span> Live weather</div>
+              <div class="wx-ic" id="wxIcon" aria-hidden="true"></div>
+            </div>
+            <div class="wx-mid">
+              <div class="wx-hi" id="wxGreeting">Checking your local sky…</div>
+            </div>
+            <div class="wx-bot">
+              <div class="wx-temp" id="wxTemp"></div>
+              <div class="wx-meta">
+                <div class="cond" id="wxCond">Locating you…</div>
+                <div class="wx-clock" id="wxClock"></div>
+                <div id="wxPlace"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -1592,8 +1613,9 @@
           <p class="body">
             These days I'm building AI-enabled product and platform work at
             Cerebra, focused on reliable systems and end-to-end delivery. Before
-            that, six years on the Toptal network as one of the top 3% of vetted
-            developers, across languages, industries, and codebases.
+            that, I spent years working across languages, industries, and
+            codebases, building software that needed to hold up under real-world
+            constraints.
           </p>
           <p class="body">
             My path in is different from most. I started as an electronics
@@ -3001,18 +3023,12 @@
         fog: `<svg viewBox="0 0 64 64" fill="none"><g class="cloud-b"><path d="M20 34h26a11 11 0 0 0 1-22 15 15 0 0 0-28-3 10 10 0 0 0 1 25Z" fill="#fff"/></g><g stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".9"><line x1="16" y1="44" x2="48" y2="44"><animate attributeName="x1" values="16;20;16" dur="3s" repeatCount="indefinite"/></line><line x1="20" y1="52" x2="44" y2="52"><animate attributeName="x2" values="44;40;44" dur="3s" repeatCount="indefinite"/></line></g></svg>`,
       };
       const WX_BG = {
-        sun: ["linear-gradient(150deg,#ffce7a,#ff8a3d 55%,#ff6a1a)", "light"],
-        partly: [
-          "linear-gradient(150deg,#ffd98f,#ff9a4d 60%,#ff7a2a)",
-          "light",
-        ],
-        cloud: ["linear-gradient(150deg,#e7dccb,#c6b5a1)", "dark"],
-        rain: ["linear-gradient(150deg,#7d8896,#4c5967)", "light"],
-        snow: ["linear-gradient(150deg,#eef4f8,#cad8e2)", "dark"],
-        thunder: ["linear-gradient(150deg,#403a56,#221f33)", "light"],
-        fog: ["linear-gradient(150deg,#d3ccc2,#a9a29a)", "dark"],
-        moon: ["linear-gradient(150deg,#33376f,#241f45 60%,#171436)", "light"],
+        day: ["linear-gradient(150deg,#ffe4b5,#ff9a3d 55%,#f05d00)", "light"],
+        night: ["linear-gradient(150deg,#7a2300,#bc4200 55%,#4f1200)", "light"],
       };
+      function getWxPalette(isDayNow) {
+        return isDayNow ? WX_BG.day : WX_BG.night;
+      }
       /* WMO weather codes -> icon key */
       function codeToKey(code, isDay) {
         if (code === 0) return isDay ? "sun" : "moon";
@@ -3104,9 +3120,15 @@
         const loc = await getLocation();
         if (!loc) {
           // graceful fallback: no location
+          const now = new Date();
+          const [bg, textMode] = getWxPalette(
+            now.getHours() >= 6 && now.getHours() < 20,
+          );
           wx.classList.remove("loading");
+          wx.style.background = bg;
+          wx.setAttribute("data-text", textMode);
           document.getElementById("wxIcon").innerHTML = WX_ICONS.sun;
-          const g = timeGreeting(new Date());
+          const g = timeGreeting(now);
           document.getElementById("wxGreeting").innerHTML =
             `${g}, welcome.<br>Hope the weather's treating you well wherever you are.`;
           document.getElementById("wxTemp").innerHTML = "";
@@ -3139,24 +3161,38 @@
           }
         } catch (e) {}
         key = codeToKey(cc, isDay);
-        const [bg, textMode] = WX_BG[key];
+        const [bg, textMode] = getWxPalette(isDay === 1);
         const [adj, phrase] = WX_LABEL[key];
+        const prompt =
+          key === "rain"
+            ? `How are you feeling about the ${adj} weather in <span class="city">${loc.city}</span>?`
+            : key === "thunder"
+              ? `Is this ${adj} weather in <span class="city">${loc.city}</span> keeping you indoors?`
+              : key === "snow"
+                ? `How are you enjoying the ${adj} weather in <span class="city">${loc.city}</span>?`
+                : `How are you enjoying the ${adj} weather in <span class="city">${loc.city}</span>?`;
         wx.classList.remove("loading");
         wx.style.background = bg;
         wx.setAttribute("data-text", textMode);
-        document.getElementById("wxIcon").innerHTML = WX_ICONS[key];
+        const wxIcon = document.getElementById("wxIcon");
+        if (wxIcon) wxIcon.innerHTML = WX_ICONS[key];
         const g = timeGreeting(new Date());
-        document.getElementById("wxGreeting").innerHTML =
-          `${g}, friend.<br>How do you like the ${adj} weather in <span class="city">${loc.city}</span>?`;
-        if (temp !== null) {
-          document.getElementById("wxTemp").innerHTML =
-            `${temp}<sup>°${uSym}</sup>`;
-        } else {
-          document.getElementById("wxTemp").innerHTML = "";
+        const wxGreeting = document.getElementById("wxGreeting");
+        if (wxGreeting) wxGreeting.innerHTML = `${g}, friend.<br>${prompt}`;
+        const wxTemp = document.getElementById("wxTemp");
+        if (wxTemp) {
+          if (temp !== null) {
+            wxTemp.innerHTML = `${temp}<sup>°${uSym}</sup>`;
+          } else {
+            wxTemp.innerHTML = "";
+          }
         }
-        document.getElementById("wxCond").textContent =
-          phrase.charAt(0).toUpperCase() + phrase.slice(1);
-        document.getElementById("wxPlace").textContent = loc.city;
+        const wxCond = document.getElementById("wxCond");
+        if (wxCond) {
+          wxCond.textContent = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+        }
+        const wxPlace = document.getElementById("wxPlace");
+        if (wxPlace) wxPlace.textContent = loc.city;
         tickClock();
       }
       setInterval(tickClock, 1000);
