@@ -3082,6 +3082,21 @@
         }
       }
 
+      function normalizeCountryCode(code) {
+        return (code || "").toUpperCase();
+      }
+
+      function shouldUseFahrenheit(countryCode, lat, lon) {
+        const cc = normalizeCountryCode(countryCode);
+        if (cc === "US" || cc === "LR" || cc === "MM") return true;
+        return (
+          lat >= 24.396308 &&
+          lat <= 49.384358 &&
+          lon >= -124.848974 &&
+          lon <= -66.885444
+        );
+      }
+
       async function getLocation() {
         if (navigator.geolocation) {
           try {
@@ -3094,6 +3109,7 @@
             });
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
+
             try {
               const r = await fetch(
                 `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&count=1`,
@@ -3103,15 +3119,54 @@
                 const result = j && j.results && j.results[0];
                 if (result) {
                   return {
-                    city: result.name || result.admin1 || "Your area",
+                    city:
+                      result.name ||
+                      result.admin1 ||
+                      result.country ||
+                      "Your area",
                     lat,
                     lon,
-                    cc: result.country_code,
+                    cc: normalizeCountryCode(result.country_code),
                     tz: result.timezone || null,
                   };
                 }
               }
             } catch (e) {}
+
+            try {
+              const r = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1&accept-language=en`,
+                {
+                  headers: {
+                    "Accept-Language": "en",
+                  },
+                },
+              );
+              if (r.ok) {
+                const j = await r.json();
+                const address = j && j.address;
+                const city =
+                  address?.city ||
+                  address?.town ||
+                  address?.village ||
+                  address?.hamlet ||
+                  address?.state ||
+                  address?.county ||
+                  j?.name ||
+                  "Your area";
+                if (city) {
+                  return {
+                    city,
+                    lat,
+                    lon,
+                    cc: normalizeCountryCode(j?.address?.country_code),
+                    tz:
+                      Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+                  };
+                }
+              }
+            } catch (e) {}
+
             return {
               city: "Your area",
               lat,
@@ -3132,7 +3187,7 @@
                 city: j.city,
                 lat: j.latitude,
                 lon: j.longitude,
-                cc: j.country_code,
+                cc: normalizeCountryCode(j.country_code),
                 tz: j.timezone,
               };
           }
@@ -3146,7 +3201,7 @@
                 city: j.city,
                 lat: j.latitude,
                 lon: j.longitude,
-                cc: j.country_code,
+                cc: normalizeCountryCode(j.country_code),
                 tz: (j.timezone && j.timezone.id) || null,
               };
           }
@@ -3179,10 +3234,9 @@
         }
         clockTZ = loc.tz || null;
         tickClock();
-        const unit =
-          loc.cc === "US" || loc.cc === "LR" || loc.cc === "MM"
-            ? "fahrenheit"
-            : "celsius";
+        const unit = shouldUseFahrenheit(loc.cc, loc.lat, loc.lon)
+          ? "fahrenheit"
+          : "celsius";
         const uSym = unit === "fahrenheit" ? "F" : "C";
         let temp = null,
           key = "sun",
