@@ -26,9 +26,11 @@
         --orange-soft: #fff1e7;
         --orange-tint: #fff8f2;
         --sh-1: 0 1px 2px rgba(22, 18, 14, 0.05);
-        --sh-2: 0 2px 6px rgba(22, 18, 14, 0.06),
+        --sh-2:
+          0 2px 6px rgba(22, 18, 14, 0.06),
           0 10px 30px -14px rgba(22, 18, 14, 0.14);
-        --sh-3: 0 30px 60px -28px rgba(224, 73, 11, 0.5),
+        --sh-3:
+          0 30px 60px -28px rgba(224, 73, 11, 0.5),
           0 8px 22px -12px rgba(22, 18, 14, 0.18);
         --maxw: 1160px;
         --r: 22px;
@@ -279,7 +281,8 @@
         inset: 0;
         z-index: 0;
         pointer-events: none;
-        background: radial-gradient(
+        background:
+          radial-gradient(
             560px 420px at 82% 8%,
             rgba(255, 171, 46, 0.28),
             transparent 60%
@@ -989,7 +992,6 @@
       }
       .exp {
         display: grid;
-        grid-template-columns: 160px 1fr;
         gap: 26px;
         background: var(--card);
         border: 1px solid var(--line);
@@ -1005,12 +1007,6 @@
         border-color: var(--orange);
         transform: translateX(4px);
         box-shadow: var(--sh-2);
-      }
-      .exp .when {
-        font-family: "Space Mono", monospace;
-        font-size: 13px;
-        color: var(--ink-faint);
-        padding-top: 4px;
       }
       .exp h3 {
         font-size: 19px;
@@ -2450,7 +2446,6 @@
         </div>
         <div class="exp-grid">
           <div class="exp reveal">
-            <div class="when">Current</div>
             <div>
               <h3>Software Developer</h3>
               <div class="co">Phonon</div>
@@ -2463,7 +2458,6 @@
             </div>
           </div>
           <div class="exp reveal">
-            <div class="when">2019 to 2024</div>
             <div>
               <h3>Software Engineer Consultant</h3>
               <div class="co">Toptal</div>
@@ -2571,7 +2565,6 @@
                       rel="noopener"
                       >Phonon Studio AI</a
                     >
-                    <br />January 2025 to July 2026
                     <ul>
                       <li>
                         Architected and built full-stack features for a
@@ -2603,7 +2596,6 @@
                       rel="noopener"
                       >Toptal</a
                     >
-                    <br />2019 to 2024
                     <ul>
                       <li>
                         Modernized and extended client-facing web applications,
