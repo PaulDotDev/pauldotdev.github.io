@@ -1,0 +1,6 @@
+{
+  "name": "paul-brooks-portfolio",
+  "private": true,
+  "scripts": { "build": "node scripts/build-renderer.cjs" },
+  "devDependencies": { "esbuild": "0.25.9" }
+}
